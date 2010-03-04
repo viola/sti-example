@@ -1,0 +1,135 @@
+= Single Table Inheritance example
+
+This is a sample sti application to demonstrate Single Table Inheritance(STI) in Rails.
+There are two main models User and Address, Address model has a type for HomeAddres, PreferredAddress and WorkAddress via STI
+
+User model:
+
+    # == Schema Information
+    #
+    # Table name: users
+    #
+    #  id         :integer         not null, primary key
+    #  first_name :string(255)
+    #  last_name  :string(255)
+    #  email      :string(255)
+    #  created_at :datetime
+    #  updated_at :datetime
+    #
+    class User < ActiveRecord::Base
+      has_many :addresses, :dependent => :delete_all
+      has_one  :home_address
+      has_one  :preferred_address
+      has_one  :work_address
+      
+      accepts_nested_attributes_for :home_address, :preferred_address, :work_address
+    end
+
+Address model:
+
+    # == Schema Information
+    #
+    # Table name: addresses
+    #
+    #  id         :integer         not null, primary key
+    #  street     :string(255)
+    #  city       :string(255)
+    #  state      :string(255)
+    #  postal     :string(255)
+    #  country    :string(255)
+    #  type       :string(255)
+    #  user_id    :integer
+    #  created_at :datetime
+    #  updated_at :datetime
+    #
+    class Address < ActiveRecord::Base
+      belongs_to :user
+    end
+    
+And here is STI for HomeAddress, PreferredAddress and WorkAddress from the Address Model:
+
+    class HomeAddress < Address
+    end
+
+    class PreferredAddress < Address
+    end
+
+    class WorkAddress < Address
+    end
+
+== Installing
+
+    run rake db:migrate
+
+== Web Server
+
+Example of usage:
+
+    run script/server
+    
+go to: http://localhost:3000/users/new
+
+== Console
+
+Example of usage in console: 
+
+    run script/console
+
+# creata a user
+
+    >> viola = User.create(:first_name => "Viola", :last_name => "Holownia", :email => "viola.holownia@example.com")
+      User Create (0.5ms)   INSERT INTO "users" ("updated_at", "first_name", "last_name", "email", "created_at") VALUES('2010-02-26 06:39:22', 'Viola', 'Holownia', 'viola.holownia@example.com', '2010-02-26 06:39:22')
+    => #<User id: 16, first_name: "Viola", last_name: "Holownia", email: "viola.holownia@example.com", created_at: "2010-02-26 06:39:22", updated_at: "2010-02-26 06:39:22">
+
+# create a home address for user viola
+
+    >> viola.create_home_address(:city => "Home City", :postal => "73-100", :country => "Home Country")
+      HomeAddress Create (9.7ms)   INSERT INTO "addresses" ("city", "postal", "updated_at", "country", "type", "street", "user_id", "state", "created_at") VALUES('Stargard', '73-100', '2010-02-26 06:40:51', 'Poland', 'HomeAddress', NULL, 16, NULL, '2010-02-26 06:40:51')
+    => #<HomeAddress id: 48, street: nil, city: "Stargard", state: nil, postal: "73-100", country: "Poland", type: "HomeAddress", user_id: 16, created_at: "2010-02-26 06:40:51", updated_at: "2010-02-26 06:40:51">
+
+# create a prefrerred address for user viola
+
+    >> viola.create_preferred_address(:city => "Ithaca", :state => "NY", :postal => "14850", :country => "USA")
+    => #<PreferredAddress id: 49, street: nil, city: "Ithaca", state: "NY", postal: "14850", country: "USA", type: "PreferredAddress", user_id: 16, created_at: "2010-02-26 06:41:54", updated_at: "2010-02-26 06:41:54">
+
+# get all addresses for user viola
+
+    >> viola.addresses
+      Address Load (0.6ms)   SELECT * FROM "addresses" WHERE ("addresses".user_id = 16) 
+    => [#<HomeAddress id: 48, street: nil, city: "Stargard", state: nil, postal: "73-100", country: "Poland", type: "HomeAddress", user_id: 16, created_at: "2010-02-26 06:40:51", updated_at: "2010-02-26 06:40:51">, #<PreferredAddress id: 49, street: nil, city: "Ithaca", state: "NY", postal: "14850", country: "USA", type: "PreferredAddress", user_id: 16, created_at: "2010-02-26 06:41:54", updated_at: "2010-02-26 06:41:54">]
+
+# get a count of addresses for user viola 
+
+    >> viola.addresses.count
+      SQL (0.3ms)   SELECT count(*) AS count_all FROM "addresses" WHERE ("addresses".user_id = 16) 
+    => 2
+
+# get a home address for user viola
+
+    >> viola.home_address
+    => #<HomeAddress id: 48, street: nil, city: "Stargard", state: nil, postal: "73-100", country: "Poland", type: "HomeAddress", user_id: 16, created_at: "2010-02-26 06:40:51", updated_at: "2010-02-26 06:40:51">
+
+# is work address blank for user object viola?
+
+    >> viola.work_address.blank?
+      WorkAddress Load (0.4ms)   SELECT * FROM "addresses" WHERE ("addresses".user_id = 16) AND ( ("addresses"."type" = 'WorkAddress' ) ) LIMIT 1
+    => true
+
+# find all users with home address
+
+    >> User.find(:all, :joins => :home_address)
+      User Load (0.6ms)   SELECT "users".* FROM "users" INNER JOIN "addresses" ON addresses.user_id = users.id AND ("addresses"."type" = 'HomeAddress' ) 
+    => [#<User id: 16, first_name: "Viola", last_name: "Holownia", email: "viola.holownia@example.com", created_at: "2010-02-26 06:39:22", updated_at: "2010-02-26 06:39:22">, #<User id: 17, first_name: "Bob", last_name: "Awesome", email: "bob@awesome.com", created_at: "2010-02-26 06:45:02", updated_at: "2010-02-26 06:45:02">]
+
+# find all users with work address
+
+    >> User.find(:all, :joins => :work_address)
+      User Load (0.3ms)   SELECT "users".* FROM "users" INNER JOIN "addresses" ON addresses.user_id = users.id AND ("addresses"."type" = 'WorkAddress' ) 
+    => []
+
+# destroy user viola, note: b/c we put has_many :addresses, :dependent => :delete_all in user model it will also destroy all addresses associated with user object viola
+
+    >> viola.destroy
+      Address Delete all (0.6ms)   DELETE FROM "addresses" WHERE ((user_id = 16)) 
+      User Destroy (0.1ms)   DELETE FROM "users" WHERE "id" = 16
+    => #<User id: 16, first_name: "Viola", last_name: "Holownia", email: "viola.holownia@example.com", created_at: "2010-02-26 06:39:22", updated_at: "2010-02-26 06:39:22">
