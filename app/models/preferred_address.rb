@@ -1,0 +1,2 @@
+class PreferredAddress < Address
+end

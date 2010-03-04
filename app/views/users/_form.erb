@@ -1,0 +1,25 @@
+<%= f.error_messages %>
+<fieldset>
+<legend>User attributes</legend>
+<p>
+  <%= f.label :first_name %><br />
+  <%= f.text_field :first_name %>
+</p>
+<p>
+  <%= f.label :last_name %><br />
+  <%= f.text_field :last_name %>
+</p>
+<p>
+  <%= f.label :email %><br />
+  <%= f.text_field :email %>
+</p>
+<% address_types = ["home","preferred","work"] %>
+<% address_types.each do |type| %>
+<fieldset style="width:30%; float:left">
+<legend><%= type.capitalize %> Address</legend>
+<% f.fields_for :"#{type}_address" do |type| %>
+<%= render :partial => 'address', :locals => { :f => f, :address => type } %>
+<% end %>
+</fieldset>
+<% end %>
+</fieldset>

@@ -1,0 +1,14 @@
+<h1>Editing user</h1>
+
+<% form_for(@user) do |f| %>
+  <%= render :partial => 'form', :locals => { :f => f } %>
+  <fieldset>
+  <legend>Update this record</legend>
+  <p>
+    <%= f.submit 'Update' %>
+  </p>
+  </fieldset>
+<% end %>
+
+<%= link_to 'Show', @user %> |
+<%= link_to 'Back', users_path %>
